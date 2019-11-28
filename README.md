@@ -13,7 +13,7 @@ This is very much a work in progress and the api is a little inelegant. To see h
 
 A task graph looks something like this:
 
-![Image](https://ibb.co/2j5PpRx)
+![Image](https://i.ibb.co/0fQZz1T/tmp-exmple-graph.png)
 
 # Future work
 * Expose this as a REST API so other services can get the state of a task graph, fetch results or push new tasks to the graph. 
