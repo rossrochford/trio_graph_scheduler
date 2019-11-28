@@ -13,7 +13,7 @@ This is very much a work in progress and the api is a little inelegant. To see h
 
 A task graph looks something like this:
 
-![Image](./blob/master/trio_graph_scheduler/tests/example_graph.png?raw=true)
+![Image](./trio_graph_scheduler/tests/example_graph.png?raw=true)
 
 # Future work
 * Expose this as a REST API so other services can get the state of a task graph, fetch results or push new tasks to the graph. 
