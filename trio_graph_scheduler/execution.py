@@ -56,8 +56,7 @@ async def execute_task(task_node):
     self = task_node
     self.task_status = 'in_progress'
     # await self.log('INFO', 'starting task')
-    if not (type(self.task_arguments) is tuple and len(self.task_arguments) == 2):
-        import pdb; pdb.set_trace()
+
     assert type(self.task_arguments) is tuple and len(self.task_arguments) == 2
 
     try:

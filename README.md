@@ -13,4 +13,5 @@ This is very much a work in progress and the api is a little inelegant. To see h
 
 # Future work
 * Expose this as a REST API so other services can get the state of a task graph, fetch results or push new tasks to the graph. 
+* Add hierarchical logging so graph execution can be traced and task log lines consolidated.
 * Add multi-process support?
