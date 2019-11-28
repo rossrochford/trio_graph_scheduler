@@ -1,4 +1,3 @@
-
 import uuid
 
 from trio_graph_scheduler.nodes import Node, TaskNode, WaitTaskNode

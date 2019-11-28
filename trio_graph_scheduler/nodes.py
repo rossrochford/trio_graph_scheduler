@@ -34,9 +34,9 @@ class TaskNode(Node):
 
     Args:
         graph (TaskGraph):      Graph object that the task is scheduled within
-        task_handle (str):      name of function that will be executed
-        task_arguments (tuple): tuple of function arguments in the form: (args, kwargs)
-        status (str):           initial task status
+        task_handle (str):      Name of function that will be executed
+        task_arguments (tuple): Tuple of function arguments in the form: (args, kwargs)
+        status (str):           Initial task status
     """
     def __init__(self, graph, task_handle, task_arguments, status='ready_for_execution'):
 
@@ -62,15 +62,21 @@ class WaitTaskNode(TaskNode):
     Args:
         graph (TaskGraph):                      Graph object that the task is scheduled within
         task_handle (str):                      Name of function that will be executed
+
         task_arguments (tuple/function/None):   Tuple of function arguments in the form: (args, kwargs)
                                                 or: None, in which case args are set to list 'predecessors'
                                                 or: a function that takes predecessors list and returns arguments tuple
-                                                - you may use a function when arguments aren't available until predecessors are complete
+                                                - usually a function is used when arguments aren't available until
+                                                  predecessors have finished executing or if you'd rather write
+                                                  a get_args() function than a wrapper function for the task
+
         schedule_when_errors_found (bool):      Whether all predecessors need to be be successful for this
                                                 task to be executed.
     """
+
     def __init__(self, graph, task_handle, task_arguments, schedule_when_errors_found):
         super(WaitTaskNode, self).__init__(graph, task_handle, task_arguments)
+
         self.task_status = 'waiting_for_predecessors'
         self.schedule_when_errors_found = schedule_when_errors_found
         self.notify_lock = trio.Lock()
