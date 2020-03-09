@@ -105,20 +105,19 @@ async def create_graph__fetch_word_counts(page_urls):
         return (word_counts_by_url,), {}
 
     graph = TaskGraph(FUNCTIONS, WORKER_LOOPS, WORKER_LOOP_ASSIGNMENTS)
-    root_uid = graph.root.uid
 
     page_source__task_uids = []
     word_count__task_uids = []
 
     for url in page_urls:
         uid = await graph.create_task(
-            'get_page_source', ((url,), {}), root_uid
+            'get_page_source', ((url,), {}), graph.root.uid
         )
         page_source__task_uids.append(uid)
 
         uid = await graph.create_wait_task(
             # when args is set to None, they'll be replaced with a list of predecessors
-            'get_word_counts', None, [uid], True
+            'get_word_counts', None, [uid], 'SUCCESS_ALL'
         )
         word_count__task_uids.append(uid)
 
@@ -127,7 +126,7 @@ async def create_graph__fetch_word_counts(page_urls):
         'combine_page_word_counts',
         get_args__combine_page_word_counts,  # - when args is a function, it's called before task executes to get args
         word_count__task_uids,               # - wait for all page word counts to complete
-        False                                # - schedule this task regardless of whether its predecessor tasks succeed or fail
+        'COMPLETE_ALL'                       # - schedule this task regardless of whether its predecessor tasks succeed or fail
     )
 
     return graph
