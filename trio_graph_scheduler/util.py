@@ -28,14 +28,6 @@ CONDITION_STATUS_COLOURS = {
     'failed': 'red'
 }
 
-# created
-# ready_for_execution
-# failed
-# success
-
-# waiting_on_tasks
-# satisfied
-
 
 def draw_graph__pyvis(graph):
 
