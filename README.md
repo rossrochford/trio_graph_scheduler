@@ -4,73 +4,107 @@ Task scheduler for the Trio concurrency framework, similar to Directed Acyclic G
 
 The purpose of this is to:
 
-* Separate task scheduling/dependency from the functionality/logic of tasks.
-* Provide a shared scheduling data structure that can change dynamically during execution.
+* Separate task scheduling and concurrency logic from the core functionality of the tasks.
+* Provide a shared scheduling data structure that can be updated dynamically during execution.
 * Provide a temporary in-memory store of task results within a graph.
-* Provide constraints on task concurrency by assinging task-types to worker-loop groups.
+* Provide constraints on task concurrency by defining separate worker-loop groups for different task types.
 
-This is very much a work in progress and the api is a little inelegant.
-
-A task graph looks something like this:
-
-![Image](https://i.ibb.co/WcsFR7Z/tmp-exmple-graph.png)
 
 ### Usage:
 
 ```
+# abbreviated code, for full example see: trio_graph_scheduler/examples/example1.py
+
 import trio
 
 from trio_graph_scheduler.execution import execute_graph
 from trio_graph_scheduler.graph import TaskGraph
 
-TASK_FUNCTIONS = {
-    # name -> function
-    'get_html': get_html,
-    'process_html': process_html
-}
 
-# define worker loops
-WORKER_LOOPS = {
-    'default': 4,            # 'default' is a fallback for unassigned tasks
-    'http_worker_loop': 10   # e.g. max concurrency for HTTP tasks
-}
+async def get_word_counts(**kwargs):
+    
+    # get results of predecessors
+    predecessors = kwargs['task_node'].get_predecessor_task_nodes()
+    
+    url = predecessors[0].task_arguments[0][0] 
+    page_source = predecessors[0].task_result
 
-WORKER_ASSIGNMENTS = {
-    'get_html': 'http_worker_loop'
-}
+    # omitted: compute work_counts
+
+    return url, word_counts
 
 
 async def main():
-    # create graph 
-    graph = TaskGraph(TASK_FUNCTIONS, WORKER_LOOPS, WORKER_ASSIGNMENTS)
     
-    URLS = [
-        'https://trio.readthedocs.io/en/stable/',
-        'https://docs.python.org/3/whatsnew/3.8.html'
+    # tell the TaskGraph which functions/names to expect
+    FUNCTIONS = {
+        'get_page_source': get_page_source,  # omitted, see tests/example.py
+        'get_word_counts': get_word_counts,
+        'combine_page_word_counts': combine_page_word_counts,  
+    }
+    # define the worker loops, their concurrency and expected functions
+    WORKER_LOOPS = [
+        WorkerLoop('default', 3, None),
+        WorkerLoop('html_loop', 4, ['get_page_source'])
     ]
-    
-    # add task nodes to graph
-    for url in URLS:
-        html_task_uid = await graph.create_task(
-            'get_html', ((url,), {}), graph.root.uid
-        )
 
-        # args is set to None here, see docstring for more info
-        uid = await graph.create_wait_task(            
-            'get_word_counts', None, [html_task_uid], True
+    graph = TaskGraph(FUNCTIONS, WORKER_LOOPS)
+
+    word_count__task_uids = []
+
+    for url in page_urls:
+        ps_task = await graph.create_task(
+            # (function_name, arguments, predecessor_tasks)
+            'get_page_source', ((url,), {}), None
         )
+        wc_task = await graph.create_task(
+            # no arguments, get_word_counts() will fetch its inputs from the results of its predecessor tasks
+            'get_word_counts', None, [ps_task.uid]
+        )
+        word_count__task_uids.append(wc_task.uid)
     
-    await execute_graph(graph, 3) 
+    # a SchedulingCondition object becomes 'satisfied' when some criteria is true, a generic COMPLETE__ALL condition entails waiting 
+    # for all tasks in 'word_count__task_uids' to complete (successfully or not). Once satisfied, tasks waiting on it are scheduled.
+    wait_condition = GenericSchedulingCondition(
+        graph, 'COMPLETE__ALL', word_count__task_uids
+    )
+
+    # this task waits for 'wait_condition' to be satisfied
+    await graph.create_task(
+        'combine_page_word_counts', None, [wait_condition.uid]
+    )
+    
+    # execute this graph, tasks will get execute concurrently 
+    # based on the active worker loops
+    await execute_graph(graph) 
 
 
 if __name__ == '__main__':
     trio.run(main)
 ```
 
-For a more complex example see: tests/example.py
 
+To run this example do:
 
-## Future work
-* Expose this as a REST API so other services can get the state of a task graph, fetch results or push new tasks to the graph. 
-* Add hierarchical logging so graph execution can be traced and task log lines consolidated.
-* Add multi-process support?
+```
+# cd into repository
+$ cd trio_graph_scheduler/
+
+# create and activate virtualenv
+$ python3 -m venv venv/
+$ source venv/bin/activate
+$ pip install -r requirements.txt
+$ export PYTHONPATH=$(pwd)
+
+# run example
+$ python trio_graph_scheduler/examples/example1.py
+```
+
+Once execution is complete, it will render a graph of the TaskNodes and SchedulingConditions, like this:
+
+A task graph looks something like this:
+
+![Image](https://i.ibb.co/KWxLxyt/example-graph.png)
+
+The yellow node is the root Graph object, the square nodes are TaskNodes and the circular nodes are SchedulingCondition objects. The entire network is green which means all Tasks were successful and all SchedulingConditions were satisfied.
+

@@ -1,2 +1,4 @@
 asks==2.3.6
-trio==0.13.0
+trio==0.16.0
+jsonpickle==1.4.1
+pyvis==0.1.8.1.1
