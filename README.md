@@ -108,7 +108,6 @@ Once execution is complete, it will render a graph of the TaskNodes and Scheduli
 
 A task graph looks something like this:
 
-![Image](https://i.ibb.co/KWxLxyt/example-graph.png)
+![Image](https://i.ibb.co/hHHSfTZ/example-graph.png)
 
 The yellow node is the root Graph object, the square nodes are TaskNodes and the circular nodes are SchedulingCondition objects. The entire network is green which means all Tasks were successful and all SchedulingConditions were satisfied.
-
