@@ -26,19 +26,6 @@ from trio_graph_scheduler.graph import TaskGraph
 WorkerLoop = namedtuple('WorkerLoop', 'name concurrency functions')
 
 
-async def get_word_counts(**kwargs):
-    
-    # get results of predecessors
-    predecessors = kwargs['task_node'].get_predecessor_task_nodes()
-    
-    url = predecessors[0].task_arguments[0][0] 
-    page_source = predecessors[0].task_result
-
-    # omitted: compute work_counts
-
-    return url, word_counts
-
-
 async def main():
     
     # tell the TaskGraph which functions/names to expect
@@ -81,6 +68,23 @@ async def main():
     # execute this graph, tasks will get execute concurrently 
     # based on the active worker loops
     await execute_graph(graph) 
+
+
+# an example task function
+async def get_word_counts(**kwargs):
+    
+    # get results of predecessors
+    predecessors = kwargs['task_node'].get_predecessor_task_nodes()
+    
+    url = predecessors[0].task_arguments[0][0] 
+    page_source = predecessors[0].task_result
+    
+    word_counts = {}
+    # omitted: compute work_counts
+    
+    return url, word_counts
+
+
 
 
 if __name__ == '__main__':
