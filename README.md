@@ -12,13 +12,18 @@ The purpose of this is to:
 
 ### Usage:
 
-```
+```python
+
 # abbreviated code, for full example see: trio_graph_scheduler/examples/example1.py
+
+from collections import namedtuple
 
 import trio
 
 from trio_graph_scheduler.execution import execute_graph
 from trio_graph_scheduler.graph import TaskGraph
+
+WorkerLoop = namedtuple('WorkerLoop', 'name concurrency functions')
 
 
 async def get_word_counts(**kwargs):
@@ -58,13 +63,12 @@ async def main():
             'get_page_source', ((url,), {}), None
         )
         wc_task = await graph.create_task(
-            # no arguments, get_word_counts() will fetch its inputs from the results of its predecessor tasks
+            # no arguments, get_word_counts() fetches inputs from predecessor tasks
             'get_word_counts', None, [ps_task.uid]
         )
         word_count__task_uids.append(wc_task.uid)
     
-    # a SchedulingCondition object becomes 'satisfied' when some criteria is true, a generic COMPLETE__ALL condition entails waiting 
-    # for all tasks in 'word_count__task_uids' to complete (successfully or not). Once satisfied, tasks waiting on it are scheduled.
+    # a SchedulingCondition object becomes 'satisfied' when some criteria is true
     wait_condition = GenericSchedulingCondition(
         graph, 'COMPLETE__ALL', word_count__task_uids
     )
