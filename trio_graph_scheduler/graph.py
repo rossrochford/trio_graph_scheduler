@@ -1,4 +1,4 @@
-from collections import defaultdict
+from collections import defaultdict, namedtuple
 import uuid
 
 from trio_graph_scheduler.util import draw_graph__pyvis
@@ -20,6 +20,8 @@ Condition -> Task
 
 
 class TaskGraph(object):
+
+    WorkerLoop = namedtuple('WorkerLoop', 'name concurrency functions')
 
     def __init__(self, functions, worker_loops, worker_context_init_functions=None):
 
@@ -52,7 +54,7 @@ class TaskGraph(object):
             # graph hasn't started 'executing' yet, store them here temporarily
             self.unscheduled_tasks.append(task_node.uid)
 
-    async def create_task(self, task_handle, task_arguments, waits_on=None):
+    async def create_task(self, task_handle, task_arguments, waits_on=None, attach_to_root_if_no_predecessors=True):
 
         status = 'created'
         if waits_on:
@@ -64,8 +66,9 @@ class TaskGraph(object):
         self.nodes[task_node.uid] = task_node
 
         if not waits_on:
-            # attach task_node to the graph, which acts as a 'root' node
-            self.edges_by_label['scheduled'].append(task_node.uid)
+            if attach_to_root_if_no_predecessors:
+                # attach task_node to the graph, which acts as a 'root' node
+                self.edges_by_label['scheduled'].append(task_node.uid)
             await self._schedule_new_task(task_node)
             return task_node
 

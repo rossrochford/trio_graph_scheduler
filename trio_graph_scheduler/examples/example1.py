@@ -16,12 +16,10 @@ STOPWORDS = (
     'is', 'be', 'with', 'on', 'that', 'are', 'or', 'an', 'as'
 )
 
-WorkerLoop = namedtuple('WorkerLoop', 'name concurrency functions')
-
 
 async def combine_page_word_counts(**kwargs):
 
-    predecessors = kwargs['task_node'].get_predecessor_task_nodes()
+    predecessors, _ = kwargs['task_node'].get_predecessor_task_nodes()
 
     word_counts_by_url = {
         # url:  word_counts
@@ -44,7 +42,7 @@ async def combine_page_word_counts(**kwargs):
 
 async def get_word_counts(**kwargs):
 
-    predecessors = kwargs['task_node'].get_predecessor_task_nodes()
+    predecessors, _ = kwargs['task_node'].get_predecessor_task_nodes()
 
     word_counts = defaultdict(int)
 
@@ -82,8 +80,8 @@ async def create_graph__fetch_word_counts(page_urls):
         'combine_page_word_counts': combine_page_word_counts,
     }
     WORKER_LOOPS = [
-        WorkerLoop('default', 3, None),
-        WorkerLoop('html_loop', 4, ['get_page_source'])
+        TaskGraph.WorkerLoop('default', 3, None),
+        TaskGraph.WorkerLoop('html_loop', 4, ['get_page_source'])
     ]
 
     graph = TaskGraph(FUNCTIONS, WORKER_LOOPS)

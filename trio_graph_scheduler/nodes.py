@@ -31,6 +31,24 @@ class TaskNode(object):
         self.notify_lock = trio.Lock()
         self.task_completed_event = trio.Event()
 
+    def __repr__(self):
+        return 'TaskNode: %s %s' % (self.task_handle, self.uid)
+
+    @property
+    def edges_by_labelO(self):
+        # copy of self.edges_by_label with the uids resolved to
+        # their objects, this is convenient when debugging
+        nodes = self.graph.nodes
+        conditions = self.graph.conditions
+        di = defaultdict(list)
+        for label, uids in self.edges_by_label.items():
+            for uid in uids:
+                if uid.startswith('condition-'):
+                    di[label].append(conditions[uid])
+                elif uid.startswith('task-'):
+                    di[label].append(nodes[uid])
+        return di
+
     def add_edge(self, node_or_uid, label):
         uid = node_or_uid if type(node_or_uid) is str else node_or_uid.uid
         self.edges_by_label[label].append(uid)
@@ -62,7 +80,37 @@ class TaskNode(object):
         conditions_by_uid = self.graph.conditions
 
         task_nodes = []
+        task_nodes_by_name = defaultdict(list)
+
         for condition_uid in self.edges_by_label['waits_on']:
             for task_uid in conditions_by_uid[condition_uid].edges_by_label['waits_on']:
-                task_nodes.append(nodes_by_uid[task_uid])
-        return task_nodes
+                node_obj = nodes_by_uid[task_uid]
+
+                task_nodes_by_name[node_obj.task_handle].append(node_obj)
+                task_nodes.append(node_obj)
+
+        return task_nodes, task_nodes_by_name
+
+    def get_successors(self, task_handle):
+        nodes_by_uid = self.graph.nodes
+        conditions_by_uid = self.graph.conditions
+
+        task_tuples = []
+
+        for condition_uid in self.edges_by_label['waited_on_by']:
+            for task_uid in conditions_by_uid[condition_uid].edges_by_label['waited_on_by']:
+                node_obj = nodes_by_uid[task_uid]
+                if node_obj.task_handle != task_handle:
+                    continue
+                task_tuples.append(
+                    (nodes_by_uid[task_uid], conditions_by_uid[condition_uid])
+                )
+
+        return task_tuples
+
+    def prepend_to_successor(self, successor_task_handle, new_task):
+        # sometimes a task needs to add a new task as a predecessor to its successor, thereby
+        # postponing it successor's execution
+        for successor_node, successor_condition in self.get_successors(successor_task_handle):
+            successor_condition.edges_by_label['waits_on'].append(new_task.uid)
+            new_task.edges_by_label['waited_on_by'].append(successor_condition.uid)

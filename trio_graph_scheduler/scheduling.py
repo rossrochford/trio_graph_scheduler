@@ -41,6 +41,27 @@ class GenericSchedulingCondition(SchedulingCondition):
 
         self.graph.conditions[self.uid] = self
 
+    def __repr__(self):
+        predecessor_handles = ','.join([
+            self.graph.nodes[uid].task_handle for uid in self.edges_by_label['waits_on']
+        ])
+        return 'Condition: %s [%s]' % (self.uid, predecessor_handles)
+
+    @property
+    def edges_by_labelO(self):
+        # copy of self.edges_by_label with the uids resolved to
+        # their objects, this is convenient when debugging
+        nodes = self.graph.nodes
+        conditions = self.graph.conditions
+        di = defaultdict(list)
+        for label, uids in self.edges_by_label.items():
+            for uid in uids:
+                if uid.startswith('condition-'):
+                    di[label].append(conditions[uid])
+                elif uid.startswith('task-'):
+                    di[label].append(nodes[uid])
+        return di
+
     @property
     def predecessor_statuses(self):
         nodes = self.graph.nodes
